@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: lexisrag
+    runtime: node
+    plan: free
+    buildCommand: |
+      npm install -g pnpm@9
+      pnpm install --frozen-lockfile
+      pnpm --filter @workspace/legal-rag run build
+      pnpm --filter @workspace/api-server run build
+    startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false          # Set manually in Render dashboard
+      - key: GEMINI_API_KEY
+        sync: false          # Optional — set in Render dashboard
+
+databases:
+  - name: lexisrag-db
+    plan: free
+    databaseName: lexisrag
+    user: lexisrag

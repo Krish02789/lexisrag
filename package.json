@@ -1,0 +1,24 @@
+{
+  "name": "lexisrag",
+  "version": "1.0.0",
+  "description": "US Tax & Legal RAG System — BM25 + TF-IDF hybrid search with Gemini synthesis",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "preinstall": "sh -c 'case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Please use pnpm\" >&2; exit 1 ;; esac'",
+    "dev:api": "pnpm --filter @workspace/api-server run dev",
+    "dev:web": "pnpm --filter @workspace/legal-rag run dev",
+    "build": "pnpm --filter @workspace/legal-rag run build && pnpm --filter @workspace/api-server run build",
+    "start": "node --enable-source-maps artifacts/api-server/dist/index.mjs",
+    "db:push": "pnpm --filter @workspace/db run push",
+    "typecheck": "tsc --build && pnpm -r --filter \"./artifacts/**\" --if-present run typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.5",
+    "typescript": "~5.9.3"
+  }
+}

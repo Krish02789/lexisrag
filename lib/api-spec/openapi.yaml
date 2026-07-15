@@ -1,0 +1,321 @@
+openapi: "3.1.0"
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: "1.0.0"
+servers:
+  - url: /api
+
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [health]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /documents:
+    get:
+      operationId: listDocuments
+      summary: List all documents
+      tags: [documents]
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      summary: Get a document by ID
+      tags: [documents]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDetail"
+        "404":
+          description: Not found
+
+  /query:
+    post:
+      operationId: queryDocuments
+      summary: Query the legal knowledge base
+      tags: [query]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryInput"
+      responses:
+        "200":
+          description: Answer with citations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryResult"
+
+  /golden-set:
+    get:
+      operationId: listGoldenSet
+      summary: List golden set entries
+      tags: [evaluation]
+      responses:
+        "200":
+          description: Golden set entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GoldenSetEntry"
+
+  /evaluation/run:
+    post:
+      operationId: runEvaluation
+      summary: Run evaluation against golden set
+      tags: [evaluation]
+      responses:
+        "200":
+          description: Evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationReport"
+
+  /evaluation/results:
+    get:
+      operationId: getEvaluationResults
+      summary: Get latest evaluation results
+      tags: [evaluation]
+      responses:
+        "200":
+          description: Evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvaluationReport"
+
+  /stats:
+    get:
+      operationId: getStats
+      summary: Get system statistics
+      tags: [stats]
+      responses:
+        "200":
+          description: System stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    Document:
+      type: object
+      required: [id, title, docType, pageCount, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        docType:
+          type: string
+        pageCount:
+          type: integer
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    DocumentChunk:
+      type: object
+      required: [id, pageNum, content]
+      properties:
+        id:
+          type: integer
+        pageNum:
+          type: integer
+        content:
+          type: string
+
+    DocumentDetail:
+      type: object
+      required: [id, title, docType, pageCount, createdAt, chunks]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        docType:
+          type: string
+        pageCount:
+          type: integer
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        chunks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentChunk"
+
+    QueryInputSearchMode:
+      type: string
+      enum: [hybrid, keyword, vector]
+
+    QueryInput:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+        searchMode:
+          $ref: "#/components/schemas/QueryInputSearchMode"
+        topK:
+          type: integer
+
+    Citation:
+      type: object
+      required: [documentId, documentTitle, docType, pageNum, excerpt, score]
+      properties:
+        documentId:
+          type: integer
+        documentTitle:
+          type: string
+        docType:
+          type: string
+        pageNum:
+          type: integer
+        excerpt:
+          type: string
+        score:
+          type: number
+        bm25Score:
+          type: ["number", "null"]
+        vectorScore:
+          type: ["number", "null"]
+
+    QueryResult:
+      type: object
+      required: [query, answer, citations, searchMode, processingTimeMs]
+      properties:
+        query:
+          type: string
+        answer:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        searchMode:
+          type: string
+        processingTimeMs:
+          type: integer
+        llmUsed:
+          type: boolean
+
+    GoldenSetEntry:
+      type: object
+      required: [id, query, groundTruthAnswer, sourceDocument, pageNumbers]
+      properties:
+        id:
+          type: integer
+        query:
+          type: string
+        groundTruthAnswer:
+          type: string
+        sourceDocument:
+          type: string
+        pageNumbers:
+          type: string
+        category:
+          type: ["string", "null"]
+
+    EvaluationEntryResult:
+      type: object
+      required: [id, query, groundTruth, systemAnswer, sourceDocument, retrievalAccuracy, faithfulness, retrieved]
+      properties:
+        id:
+          type: integer
+        query:
+          type: string
+        groundTruth:
+          type: string
+        systemAnswer:
+          type: string
+        sourceDocument:
+          type: string
+        retrievalAccuracy:
+          type: number
+        faithfulness:
+          type: number
+        retrieved:
+          type: array
+          items:
+            type: string
+
+    EvaluationReport:
+      type: object
+      required: [avgRetrievalAccuracy, avgFaithfulness, totalEntries, passedEntries, results, ranAt]
+      properties:
+        avgRetrievalAccuracy:
+          type: number
+        avgFaithfulness:
+          type: number
+        totalEntries:
+          type: integer
+        passedEntries:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvaluationEntryResult"
+        ranAt:
+          type: string
+
+    SystemStatsDocumentsByType:
+      type: object
+      additionalProperties:
+        type: integer
+
+    SystemStats:
+      type: object
+      required: [totalDocuments, totalChunks, documentsByType, avgPageCount]
+      properties:
+        totalDocuments:
+          type: integer
+        totalChunks:
+          type: integer
+        documentsByType:
+          $ref: "#/components/schemas/SystemStatsDocumentsByType"
+        avgPageCount:
+          type: number

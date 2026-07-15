@@ -1,0 +1,16 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install -g pnpm@9 && pnpm install --frozen-lockfile && pnpm --filter @workspace/legal-rag run build && pnpm --filter @workspace/api-server run build"
+
+[deploy]
+startCommand = "node --enable-source-maps artifacts/api-server/dist/index.mjs"
+healthcheckPath = "/api/healthz"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[[deploy.environmentVariables]]
+# Set these in the Railway dashboard → Variables:
+#   DATABASE_URL  (required)
+#   GEMINI_API_KEY (optional – enables LLM answers)
+#   NODE_ENV = production
